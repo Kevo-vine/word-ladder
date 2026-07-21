@@ -52,10 +52,16 @@ h1 {
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: transform 0.1s ease, background 0.15s ease;
 }
 
 #newGameBtn:hover {
   background: var(--border);
+  transform: translateY(-1px);
+}
+
+#newGameBtn:active {
+  transform: scale(0.96);
 }
 
 .message {
@@ -87,6 +93,7 @@ h1 {
   width: 56px;
   height: 56px;
   border: 2px solid var(--border);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,16 +101,16 @@ h1 {
   font-weight: 700;
   text-transform: uppercase;
   user-select: none;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .tile.filled {
   border-color: var(--border-filled);
 }
 
-.tile.correct { background: var(--correct); border-color: var(--correct); }
-.tile.present { background: var(--present); border-color: var(--present); }
-.tile.absent  { background: var(--absent);  border-color: var(--absent); }
+.tile.correct { background: var(--correct); border-color: var(--correct); box-shadow: 0 3px 6px rgba(0,0,0,0.35); }
+.tile.present { background: var(--present); border-color: var(--present); box-shadow: 0 3px 6px rgba(0,0,0,0.35); }
+.tile.absent  { background: var(--absent);  border-color: var(--absent);  box-shadow: 0 3px 6px rgba(0,0,0,0.25); }
 
 .tile.pop {
   animation: pop 0.1s ease;
@@ -135,6 +142,33 @@ h1 {
   40% { transform: translateX(6px); }
   60% { transform: translateX(-6px); }
   80% { transform: translateX(6px); }
+}
+
+.tile.bounce {
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-16px); }
+  50% { transform: translateY(0); }
+  65% { transform: translateY(-6px); }
+  80% { transform: translateY(0); }
+}
+
+.confetti {
+  position: fixed;
+  top: -12px;
+  width: 8px;
+  height: 8px;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 1000;
+  animation: confetti-fall linear forwards;
+}
+
+@keyframes confetti-fall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0.4; }
 }
 
 #keyboard {
@@ -169,6 +203,8 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
 }
 
 .key.wide {
@@ -180,8 +216,15 @@ h1 {
 .key.present { background: var(--present); }
 .key.absent  { background: var(--absent); opacity: 0.6; }
 
+.key:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+}
+
 .key:active {
-  transform: scale(0.95);
+  transform: scale(0.95) translateY(1px);
+  box-shadow: 0 0 0 rgba(0,0,0,0.3);
 }
 
 @media (max-width: 400px) {

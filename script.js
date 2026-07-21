@@ -108,6 +108,29 @@ function shakeRow(r) {
   setTimeout(() => row.classList.remove("shake"), 300);
 }
 
+function bounceRow(r) {
+  for (let c = 0; c < WORD_LENGTH; c++) {
+    const tile = document.getElementById(`tile-${r}-${c}`);
+    setTimeout(() => tile.classList.add("bounce"), c * 100);
+  }
+}
+
+const CONFETTI_COLORS = ["#538d4e", "#b59f3b", "#3a3a3c", "#f4d35e", "#4a90d9", "#d9534f"];
+
+function launchConfetti() {
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti";
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    piece.style.borderRadius = Math.random() < 0.5 ? "50%" : "2px";
+    piece.style.animationDuration = `${2 + Math.random() * 1.5}s`;
+    piece.style.animationDelay = `${Math.random() * 0.3}s`;
+    document.body.appendChild(piece);
+    piece.addEventListener("animationend", () => piece.remove());
+  }
+}
+
 function submitGuess() {
   if (currentGuess.length !== WORD_LENGTH) {
     setMessage("Not enough letters", "info");
@@ -143,7 +166,11 @@ function submitGuess() {
 
   if (won) {
     gameOver = true;
-    setTimeout(() => setMessage("You got it! 🎉", "win"), WORD_LENGTH * 100 + 100);
+    setTimeout(() => {
+      setMessage("You got it! 🎉", "win");
+      bounceRow(r);
+      launchConfetti();
+    }, WORD_LENGTH * 100 + 100);
   } else if (doneGuessing) {
     gameOver = true;
     setTimeout(() => setMessage(`Out of guesses! The word was ${answer.toUpperCase()}`, "lose"), WORD_LENGTH * 100 + 100);
