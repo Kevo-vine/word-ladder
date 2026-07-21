@@ -1,6 +1,5 @@
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
-
 const validWords = new Set(WORD_LIST);
 
 let answer = "";
@@ -12,6 +11,10 @@ const boardEl = document.getElementById("board");
 const keyboardEl = document.getElementById("keyboard");
 const messageEl = document.getElementById("message");
 const newGameBtn = document.getElementById("newGameBtn");
+const playAgainBtn = document.getElementById("playAgainBtn");
+const fallenScene = document.getElementById("fallenScene");
+const confettiCanvas = document.getElementById("confettiCanvas");
+const confettiCtx = confettiCanvas.getContext("2d");
 
 const KEY_ROWS = [
   ["q","w","e","r","t","y","u","i","o","p"],
@@ -23,12 +26,85 @@ function pickAnswer() {
   return ANSWER_LIST[Math.floor(Math.random() * ANSWER_LIST.length)];
 }
 
+const CONFETTI_COLORS = ["#d9a441", "#4c7a52", "#ece6d9", "#9c7a3a", "#e6c06a"];
+let confettiParticles = [];
+let confettiRunning = false;
+
+function resizeConfettiCanvas() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeConfettiCanvas);
+resizeConfettiCanvas();
+
+function launchConfetti() {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) return;
+
+  const count = 140;
+  const w = confettiCanvas.width;
+  confettiParticles = Array.from({ length: count }, () => ({
+    x: w / 2 + (Math.random() - 0.5) * w * 0.3,
+    y: -20 - Math.random() * 200,
+    vx: (Math.random() - 0.5) * 6,
+    vy: 2 + Math.random() * 3,
+    size: 6 + Math.random() * 6,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    rotation: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.3,
+    shape: Math.random() < 0.5 ? "rect" : "circle",
+    life: 0,
+  }));
+
+  if (!confettiRunning) {
+    confettiRunning = true;
+    requestAnimationFrame(animateConfetti);
+  }
+}
+
+function animateConfetti() {
+  confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+  confettiParticles.forEach(p => {
+    p.vy += 0.05;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rotation += p.spin;
+    p.life += 1;
+
+    const fade = Math.max(0, 1 - p.life / 220);
+    confettiCtx.save();
+    confettiCtx.globalAlpha = fade;
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate(p.rotation);
+    confettiCtx.fillStyle = p.color;
+    if (p.shape === "rect") {
+      confettiCtx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.6);
+    } else {
+      confettiCtx.beginPath();
+      confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+      confettiCtx.fill();
+    }
+    confettiCtx.restore();
+  });
+
+  confettiParticles = confettiParticles.filter(p => p.life < 220 && p.y < confettiCanvas.height + 40);
+
+  if (confettiParticles.length > 0) {
+    requestAnimationFrame(animateConfetti);
+  } else {
+    confettiRunning = false;
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
 function buildBoard() {
   boardEl.innerHTML = "";
   for (let r = 0; r < MAX_GUESSES; r++) {
     const row = document.createElement("div");
     row.className = "row";
     row.id = `row-${r}`;
+    row.style.gridRow = String(r + 1);
     for (let c = 0; c < WORD_LENGTH; c++) {
       const tile = document.createElement("div");
       tile.className = "tile";
@@ -59,7 +135,7 @@ function buildKeyboard() {
 
 function setMessage(text, type = "info") {
   messageEl.textContent = text;
-  messageEl.className = `message ${type}`;
+  messageEl.className = `plaque ${type}`;
 }
 
 function startNewGame() {
@@ -70,6 +146,8 @@ function startNewGame() {
   buildBoard();
   buildKeyboard();
   setMessage("");
+  playAgainBtn.style.visibility = "hidden";
+  fallenScene.classList.remove("show");
 }
 
 function handleKey(key) {
@@ -92,8 +170,13 @@ function handleKey(key) {
   }
 }
 
+function activeRow() {
+  // Guesses fill from the bottom rung upward, like climbing the ladder.
+  return MAX_GUESSES - 1 - guesses.length;
+}
+
 function renderCurrentRow() {
-  const r = guesses.length;
+  const r = activeRow();
   for (let c = 0; c < WORD_LENGTH; c++) {
     const tile = document.getElementById(`tile-${r}-${c}`);
     const letter = currentGuess[c] || "";
@@ -105,47 +188,116 @@ function renderCurrentRow() {
 function shakeRow(r) {
   const row = document.getElementById(`row-${r}`);
   row.classList.add("shake");
-  setTimeout(() => row.classList.remove("shake"), 300);
+  setTimeout(() => row.classList.remove("shake"), 320);
 }
 
-function bounceRow(r) {
-  for (let c = 0; c < WORD_LENGTH; c++) {
-    const tile = document.getElementById(`tile-${r}-${c}`);
-    setTimeout(() => tile.classList.add("bounce"), c * 100);
+function slideRowToTop(rowIndex, onComplete) {
+  if (rowIndex === 0) {
+    onComplete();
+    return;
   }
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // The winning row moves to the top rung; the empty rows that were
+  // above it shift down by one to close the gap it leaves behind.
+  const affected = [];
+  for (let i = 0; i < rowIndex; i++) affected.push(i);
+  affected.push(rowIndex);
+
+  const els = affected.map(i => document.getElementById(`row-${i}`));
+
+  if (reduceMotion) {
+    document.getElementById(`row-${rowIndex}`).style.gridRow = "1";
+    for (let i = 0; i < rowIndex; i++) {
+      document.getElementById(`row-${i}`).style.gridRow = String(i + 2);
+    }
+    onComplete();
+    return;
+  }
+
+  const firstRects = els.map(el => el.getBoundingClientRect());
+
+  document.getElementById(`row-${rowIndex}`).style.gridRow = "1";
+  document.getElementById(`row-${rowIndex}`).style.zIndex = "5";
+  document.getElementById(`row-${rowIndex}`).style.position = "relative";
+  for (let i = 0; i < rowIndex; i++) {
+    document.getElementById(`row-${i}`).style.gridRow = String(i + 2);
+  }
+
+  const lastRects = els.map(el => el.getBoundingClientRect());
+
+  els.forEach((el, idx) => {
+    const dy = firstRects[idx].top - lastRects[idx].top;
+    el.style.transition = "none";
+    el.style.transform = dy ? `translateY(${dy}px)` : "none";
+  });
+
+  void boardEl.offsetHeight;
+
+  requestAnimationFrame(() => {
+    els.forEach(el => {
+      el.style.transition = "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)";
+      el.style.transform = "";
+    });
+  });
+
+  setTimeout(() => {
+    els.forEach(el => {
+      el.style.transition = "";
+    });
+    document.getElementById(`row-${rowIndex}`).style.zIndex = "";
+    document.getElementById(`row-${rowIndex}`).style.position = "";
+    onComplete();
+  }, 1020);
 }
 
-const CONFETTI_COLORS = ["#538d4e", "#b59f3b", "#3a3a3c", "#f4d35e", "#4a90d9", "#d9534f"];
+function tumbleBoardDown(onComplete) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rows = [];
+  for (let i = 0; i < MAX_GUESSES; i++) rows.push(document.getElementById(`row-${i}`));
 
-function launchConfetti() {
-  for (let i = 0; i < 60; i++) {
-    const piece = document.createElement("div");
-    piece.className = "confetti";
-    piece.style.left = `${Math.random() * 100}vw`;
-    piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-    piece.style.borderRadius = Math.random() < 0.5 ? "50%" : "2px";
-    piece.style.animationDuration = `${2 + Math.random() * 1.5}s`;
-    piece.style.animationDelay = `${Math.random() * 0.3}s`;
-    document.body.appendChild(piece);
-    piece.addEventListener("animationend", () => piece.remove());
+  if (reduceMotion) {
+    onComplete();
+    return;
   }
+
+  const perRowDelay = 70;
+  const fallDuration = 650;
+
+  rows.forEach((row, i) => {
+    const rect = row.getBoundingClientRect();
+    const drop = window.innerHeight - rect.top + 120;
+    const drift = (Math.random() - 0.5) * 70;
+    const rotation = (Math.random() - 0.5) * 50;
+    const delay = i * perRowDelay;
+
+    row.style.transition =
+      `transform ${fallDuration}ms cubic-bezier(0.55, 0, 0.85, 0.35) ${delay}ms, ` +
+      `opacity ${fallDuration}ms ease ${delay}ms`;
+    row.style.transform = `translate(${drift}px, ${drop}px) rotate(${rotation}deg)`;
+    row.style.opacity = "0";
+  });
+
+  const totalTime = (MAX_GUESSES - 1) * perRowDelay + fallDuration + 60;
+  setTimeout(onComplete, totalTime);
 }
 
 function submitGuess() {
   if (currentGuess.length !== WORD_LENGTH) {
     setMessage("Not enough letters", "info");
-    shakeRow(guesses.length);
+    shakeRow(activeRow());
     return;
   }
 
   if (!validWords.has(currentGuess)) {
     setMessage("Not in word list", "info");
-    shakeRow(guesses.length);
+    shakeRow(activeRow());
     return;
   }
 
   const result = scoreGuess(currentGuess, answer);
-  const r = guesses.length;
+  const r = activeRow();
 
   result.forEach((status, c) => {
     const tile = document.getElementById(`tile-${r}-${c}`);
@@ -167,13 +319,20 @@ function submitGuess() {
   if (won) {
     gameOver = true;
     setTimeout(() => {
-      setMessage("You got it! 🎉", "win");
-      bounceRow(r);
-      launchConfetti();
+      slideRowToTop(r, () => {
+        setMessage("You reached the top!", "win");
+        launchConfetti();
+      });
     }, WORD_LENGTH * 100 + 100);
   } else if (doneGuessing) {
     gameOver = true;
-    setTimeout(() => setMessage(`Out of guesses! The word was ${answer.toUpperCase()}`, "lose"), WORD_LENGTH * 100 + 100);
+    setTimeout(() => {
+      tumbleBoardDown(() => {
+        setMessage("Oh no, you fell!", "lose");
+        playAgainBtn.style.visibility = "visible";
+        fallenScene.classList.add("show");
+      });
+    }, WORD_LENGTH * 100 + 100);
   }
 }
 
@@ -181,12 +340,10 @@ function scoreGuess(guess, target) {
   const result = new Array(WORD_LENGTH).fill("absent");
   const targetLetters = target.split("");
   const guessLetters = guess.split("");
-  const used = new Array(WORD_LENGTH).fill(false);
 
   for (let i = 0; i < WORD_LENGTH; i++) {
     if (guessLetters[i] === targetLetters[i]) {
       result[i] = "correct";
-      used[i] = true;
       targetLetters[i] = null;
     }
   }
@@ -223,5 +380,6 @@ document.addEventListener("keydown", (e) => {
 });
 
 newGameBtn.addEventListener("click", startNewGame);
+playAgainBtn.addEventListener("click", startNewGame);
 
 startNewGame();

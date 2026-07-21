@@ -3,31 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Word Ladder</title>
+<title>Word Ladder 2</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>WORD LADDER</h1>
-    <button id="newGameBtn" title="New game">↻ New</button>
-  </header>
 
-  <div id="message" class="message"></div>
+<header>
+  <h1 class="wordmark">WORD LADDER 2</h1>
+  <div class="tagline">Six rungs to the top</div>
+  <button id="newGameBtn" class="ladder-btn" title="New game">↻ New</button>
+</header>
 
+<div id="message" class="plaque"></div>
+<button id="playAgainBtn" class="ladder-btn" title="Start again with a new word">↻ Try Again</button>
+
+<div class="rungframe">
   <div id="board"></div>
+  <div id="fallenScene" class="fallen-scene" aria-hidden="true">
+    <span class="shrug-emoji">🤷</span>
+  </div>
+</div>
 
-  <div id="keyboard"></div>
+<div id="keyboard"></div>
 
-  <footer id="instructions">
-    <p>Guess the hidden 5-letter word in 6 tries.</p>
-    <ul>
-      <li><span class="swatch correct"></span> Correct letter, correct spot</li>
-      <li><span class="swatch present"></span> Correct letter, wrong spot</li>
-      <li><span class="swatch absent"></span> Letter not in the word</li>
-    </ul>
-  </footer>
+<footer>Guess the 5-letter word. Green = right spot, gold = wrong spot, dark = not in the word.</footer>
 
-  <script src="words.js"></script>
-  <script src="script.js"></script>
+<canvas id="confettiCanvas"></canvas>
+
+<script src="words.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
