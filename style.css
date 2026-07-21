@@ -230,7 +230,21 @@ header {
 
 .key.correct { background: linear-gradient(180deg, #62956a 0%, var(--moss) 100%); border-bottom-color: #294628; }
 .key.present { background: linear-gradient(180deg, #eec36c 0%, var(--gold) 100%); border-bottom-color: #8a611c; color: #211a08; }
-.key.absent  { background: linear-gradient(180deg, #282b32 0%, #1c1e24 100%); border-bottom-color: #0a0b0d; color: var(--paper-dim); }
+.key.absent  { background: linear-gradient(180deg, #282b32 0%, #1c1e24 100%); border-bottom-color: #0a0b0d; color: var(--paper-dim); position: relative; }
+
+.key.absent::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.8;
+  border-radius: 1px;
+  transform: translateY(-50%) rotate(-22deg);
+  pointer-events: none;
+}
 
 .key:hover { filter: brightness(1.15); }
 .key:active { transform: translateY(2px); border-bottom-width: 1px; }
