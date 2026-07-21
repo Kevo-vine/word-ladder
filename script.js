@@ -373,6 +373,7 @@ function updateKeyStatus(letter, status) {
 }
 
 document.addEventListener("keydown", (e) => {
+  if (e.repeat) return;
   const key = e.key.toLowerCase();
   if (key === "enter") handleKey("enter");
   else if (key === "backspace") handleKey("back");
